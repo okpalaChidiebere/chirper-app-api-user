@@ -5,6 +5,9 @@ go:
 service:
   - docker
 
+git:
+  depth: 1
+
 env:
   global:
     - USER="okpalaChidiebere"
@@ -15,6 +18,9 @@ env:
 # Pre-testing installs
 before_install:
   - echo -e "machine github.com\n  login $CI_USER_TOKEN" > $HOME/.netrc
+  - mkdir -vp $HOME/.docker/cli-plugins/
+  - curl --silent -L "https://github.com/docker/buildx/releases/download/v0.3.0/buildx-v0.3.0.linux-amd64" > $HOME/.docker/cli-plugins/docker-buildx
+  - chmod a+x $HOME/.docker/cli-plugins/docker-buildx
   - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.52.2
 
 install:
@@ -32,6 +38,6 @@ deploy:
   provider: script
   script: docker --version;
     echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin;
-    docker build --secret id=gitcredentials,src=$HOME/.netrc -t "$DOCKER_USERNAME"/"$SERVICE_NAME":"$TRAVIS_BUILD_ID" --build-arg GOPRIVATE=$GOPRIVATE .;
+    docker buildx build --secret id=gitcredentials,src=$HOME/.netrc -t "$DOCKER_USERNAME"/"$SERVICE_NAME":"$TRAVIS_BUILD_ID" --build-arg GOPRIVATE=$GOPRIVATE .;
     docker images;
     docker push "$DOCKER_USERNAME"/"$SERVICE_NAME":"$TRAVIS_BUILD_ID";
