@@ -30,8 +30,8 @@ func NewConfig() *Config {
 			ImageBucket: "chirper-app-thumbnail-dev",
 	   },
 		Aws: aws{
-			Aws_region:       mustGetenv("AWS_REGION"),
-			Aws_profile:      mustGetenv("AWS_PROFILE"),
+			Aws_region:       MustGetenv("AWS_REGION"),
+			Aws_profile:      MustGetenv("AWS_PROFILE"),
 		},
 		Prod: env{
 			UserTable: "",
@@ -43,7 +43,7 @@ func (c *Config) IsLocal() bool {
 	return c.Aws.Aws_profile != "DEPLOYED"
 }
 
-func mustGetenv (k string) string {
+func MustGetenv (k string) string {
 	v, ok := os.LookupEnv(k)
 	if !ok {
 		log.Fatalf("Warning: %s environment variable is not set.", k)

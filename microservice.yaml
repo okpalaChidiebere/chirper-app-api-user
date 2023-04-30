@@ -1,0 +1,83 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chirper-app-user-service-deployment
+  labels:
+    service: chirper-app-user-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: chirper-app-user-service
+  template:
+    metadata:
+      labels:
+        service: chirper-app-user-service
+    spec:
+      containers:
+        - name: chirper-app-user-service
+          image: aluminetchidiebre/chirper-app-user-service:262009918
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          livenessProbe:
+            exec:
+              command:
+                - "curl"
+                - "-X POST"
+                - "-f"
+                - "--header 'Content-Type: application/json'"
+                - "http://localhost:8000/grpc.health.v1.Health/Check"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: aws-secret
+              mountPath: "/root/.aws/" #making our aws configured in you local environment. This will be the path our container will store our aws credentials just the way it is on our local machine
+              readOnly: true
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "250m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+          env: # we define environmental variables for this pod linking them to this env-config.yaml file we already applied to the cluster before now
+            - name: AWS_PROFILE
+              valueFrom:
+                configMapKeyRef:
+                  name: env-config
+                  key: AWS_PROFILE
+            - name: AWS_REGION
+              valueFrom:
+                configMapKeyRef:
+                  name: env-config
+                  key: AWS_REGION
+            - name: IMAGE_FILTER_SERVICE_NAME
+              value: chirper-app-image-filter-service # this should match the Service name under the metadata section of the yaml file for the image-filter service api
+            - name: IMAGE_FILTER_SERVICE_PORT
+              value: "9000"
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: reg-docker-cred
+      volumes:
+        - name: aws-secret
+          secret:
+            secretName: aws-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chirper-app-user-service
+  labels:
+    service: chirper-app-user-service
+spec:
+  ports:
+    # listen on local port 8000 and forward to port 8000 on a Pod created by <chirper-app-image-filter-service-deployment>
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+  selector:
+    service: chirper-app-user-service
+  type: ClusterIP

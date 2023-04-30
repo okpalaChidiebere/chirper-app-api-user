@@ -25,14 +25,15 @@ before_install:
 install:
   - echo "nothing needs to be installed; skipping..."
 
-# Scripts to be run such as tests
-before_script:
+script:
+  # if i don't override the default bash script `travis_script_go.bash` that travis run during this stage our test will be ran twice
   - echo "skipping before_script step..."
 
-script:
-  - golangci-lint run --disable errcheck || travis_terminate 1
+before_deploy:
+  - golangci-lint run --disable errcheck
   - go test -v -race ./...
 
+# if the script in the `before_deploy` this step will not run
 deploy:
   provider: script
   script: docker --version;

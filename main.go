@@ -30,12 +30,18 @@ import (
 var (
 	mConfig    = config.NewConfig()
 
-	imageFilterServicePort   = 9000 
+	imageFilterServiceName   string 
+	imageFilterServicePort   string 
 	ServerPort   = 8000
 
 	cfg aws.Config
 	err error
 )
+
+func init() {
+	imageFilterServiceName = config.MustGetenv("IMAGE_FILTER_SERVICE_NAME")
+	imageFilterServicePort = config.MustGetenv("IMAGE_FILTER_SERVICE_PORT")
+}
 
 func main() {
 	// Create context that listens for the interrupt signal from the OS.
@@ -57,10 +63,10 @@ func main() {
 
 	imageFilterServiceClient := imagefilterconnect.NewImagefilterServiceClient(
 		http.DefaultClient,
-		//we are using the service name because its more reliable that using the exact IP address of the container running the service
+		//we are using the service name because its more reliable than using the exact IP address of the container running the service
 		//IP address can change when the container goes down and re-generate
 		//If you are running locally you can inspect the chirper-app-image-filter-service container running and go to the `NetworkSettings` to see all network details
-		fmt.Sprintf("http://chirper-app-image-filter-service:%d/", imageFilterServicePort),
+		fmt.Sprintf("http://%s:%s/", imageFilterServiceName, imageFilterServicePort),
 	)
 	dynamodbClient := dynamodb.NewFromConfig(cfg)
 
@@ -100,7 +106,7 @@ func main() {
 
 	httpLis, err := net.Listen("tcp", "0.0.0.0:"+port)
 	if err != nil {
-		log.Fatalf("HTTP server: failed to listen: error %v", err)
+		log.Printf("HTTP server: failed to listen: error %v", err)
 		os.Exit(2)
 	}
 
